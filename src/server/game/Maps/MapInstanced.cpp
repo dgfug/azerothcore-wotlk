@@ -19,12 +19,10 @@
 #include "Battleground.h"
 #include "Group.h"
 #include "InstanceSaveMgr.h"
-#include "MMapFactory.h"
 #include "MapMgr.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptMgr.h"
-#include "VMapFactory.h"
 
 MapInstanced::MapInstanced(uint32 id) : Map(id, 0, DUNGEON_DIFFICULTY_NORMAL)
 {

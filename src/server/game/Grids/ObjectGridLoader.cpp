@@ -19,12 +19,11 @@
 #include "CellImpl.h"
 #include "Corpse.h"
 #include "Creature.h"
-#include "CreatureAI.h"
 #include "DynamicObject.h"
 #include "GameObject.h"
+#include "GridNotifiers.h"
 #include "ObjectMgr.h"
 #include "Transport.h"
-#include "Vehicle.h"
 
 // for loading world object at grid loading (Corpses)
 //TODO: to implement npc on transport, also need to load npcs at grid loading
@@ -97,13 +96,17 @@ void AddObjectHelper(CellCoord& cell, GameObjectMapType& m, uint32& count, Map* 
 }
 
 template <class T>
-void LoadHelper(CellGuidSet const& guid_set, CellCoord& cell, GridRefMgr<T>& m, uint32& count, Map* map)
+void LoadHelper(CellGuidSet const& /*guid_set*/, CellCoord& /*cell*/, GridRefMgr<T>& /*m*/, uint32& /*count*/, Map* /*map*/)
+{
+}
+
+template <>
+void LoadHelper(CellGuidSet const& guid_set, CellCoord& cell, GridRefMgr<Creature>& m, uint32& count, Map* map)
 {
     for (CellGuidSet::const_iterator i_guid = guid_set.begin(); i_guid != guid_set.end(); ++i_guid)
     {
-        T* obj = new T;
+        Creature* obj = new Creature();
         ObjectGuid::LowType guid = *i_guid;
-
         if (!obj->LoadFromDB(guid, map))
         {
             delete obj;
@@ -111,6 +114,16 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord& cell, GridRefMgr<T>& m, 
         }
 
         AddObjectHelper(cell, m, count, map, obj);
+
+        if (!obj->IsMoveInLineOfSightDisabled() && obj->GetDefaultMovementType() == IDLE_MOTION_TYPE && !obj->isNeedNotify(NOTIFY_VISIBILITY_CHANGED | NOTIFY_AI_RELOCATION))
+        {
+            if (obj->IsAlive() && !obj->HasUnitState(UNIT_STATE_SIGHTLESS) && obj->HasReactState(REACT_AGGRESSIVE) && !obj->IsImmuneToNPC())
+            {
+                // call MoveInLineOfSight for nearby grid creatures
+                Acore::AIRelocationNotifier notifier(*obj);
+                Cell::VisitGridObjects(obj, notifier, 60.f);
+            }
+        }
     }
 }
 
@@ -120,7 +133,7 @@ void LoadHelper(CellGuidSet const& guid_set, CellCoord& cell, GridRefMgr<GameObj
     for (CellGuidSet::const_iterator i_guid = guid_set.begin(); i_guid != guid_set.end(); ++i_guid)
     {
         ObjectGuid::LowType guid = *i_guid;
-        GameObjectData const* data = sObjectMgr->GetGOData(guid);
+        GameObjectData const* data = sObjectMgr->GetGameObjectData(guid);
         GameObject* obj = data && sObjectMgr->IsGameObjectStaticTransport(data->id) ? new StaticTransport() : new GameObject();
 
         if (!obj->LoadFromDB(guid, map))

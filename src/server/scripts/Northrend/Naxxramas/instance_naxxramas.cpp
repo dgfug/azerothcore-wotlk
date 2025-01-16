@@ -15,11 +15,13 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "AreaTriggerScript.h"
 #include "CellImpl.h"
+#include "CreatureScript.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
+#include "InstanceMapScript.h"
 #include "PassiveAI.h"
-#include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "naxxramas.h"
 
@@ -50,6 +52,23 @@ inline uint8 GetEruptionSection(float x, float y)
     return 3;
 }
 
+DoorData const doorData[] =
+{
+    { GO_ANUB_GATE,     BOSS_ANUB,       DOOR_TYPE_ROOM    },
+    { 0,                0,               DOOR_TYPE_ROOM    },
+};
+
+ObjectData const creatureData[] =
+{
+    { NPC_RAZUVIOUS, DATA_RAZUVIOUS },
+    { 0,             0              }
+};
+
+ObjectData const gameObjectData[] =
+{
+    { 0,             0              }
+};
+
 class instance_naxxramas : public InstanceMapScript
 {
 public:
@@ -64,7 +83,10 @@ public:
     {
         explicit instance_naxxramas_InstanceMapScript(Map* pMap) : InstanceScript(pMap)
         {
+            SetHeaders(DataHeader);
             SetBossNumber(MAX_ENCOUNTERS);
+            LoadDoorData(doorData);
+            LoadObjectData(creatureData, gameObjectData);
             for (auto& i : HeiganEruption)
                 i.clear();
 
@@ -100,7 +122,6 @@ public:
         ObjectGuid _heiganGateGUID;
         ObjectGuid _heiganGateExitGUID;
         ObjectGuid _loathebGateGUID;
-        ObjectGuid _anubGateGUID;
         ObjectGuid _anubNextGateGUID;
         ObjectGuid _faerlinaWebGUID;
         ObjectGuid _faerlinaGateGUID;
@@ -134,6 +155,7 @@ public:
         GuidList PatchwerkRoomTrash;
         ObjectGuid _patchwerkGUID;
         ObjectGuid _thaddiusGUID;
+        ObjectGuid _gothikGUID;
         ObjectGuid _stalaggGUID;
         ObjectGuid _feugenGUID;
         ObjectGuid _zeliekGUID;
@@ -190,7 +212,7 @@ public:
 
         void OnCreatureCreate(Creature* creature) override
         {
-            switch(creature->GetEntry())
+            switch (creature->GetEntry())
             {
                 case NPC_PATCHWERK:
                     _patchwerkGUID = creature->GetGUID();
@@ -224,6 +246,9 @@ public:
                 case NPC_FEUGEN:
                     _feugenGUID = creature->GetGUID();
                     return;
+                case NPC_GOTHIK:
+                    _gothikGUID = creature->GetGUID();
+                    return;
                 case NPC_LADY_BLAUMEUX:
                     _blaumeuxGUID = creature->GetGUID();
                     return;
@@ -246,6 +271,8 @@ public:
                     _lichkingGUID = creature->GetGUID();
                     return;
             }
+
+            InstanceScript::OnCreatureCreate(creature);
         }
 
         void OnGameObjectCreate(GameObject* pGo) override
@@ -256,7 +283,7 @@ public:
                 return;
             }
 
-            switch(pGo->GetEntry())
+            switch (pGo->GetEntry())
             {
                 case GO_PATCHWERK_GATE:
                     _patchwerkGateGUID = pGo->GetGUID();
@@ -303,13 +330,6 @@ public:
                 case GO_LOATHEB_GATE:
                     _loathebGateGUID = pGo->GetGUID();
                     if (GetBossState(BOSS_LOATHEB) == DONE)
-                    {
-                        pGo->SetGoState(GO_STATE_ACTIVE);
-                    }
-                    break;
-                case GO_ANUB_GATE:
-                    _anubGateGUID = pGo->GetGUID();
-                    if (GetBossState(BOSS_ANUB) == DONE)
                     {
                         pGo->SetGoState(GO_STATE_ACTIVE);
                     }
@@ -403,7 +423,7 @@ public:
                     if (GetBossState(BOSS_LOATHEB) == DONE)
                     {
                         pGo->SetGoState(GO_STATE_ACTIVE);
-                        pGo->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+                        pGo->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                     }
                     break;
                 case GO_THADDIUS_PORTAL:
@@ -411,7 +431,7 @@ public:
                     if (GetBossState(BOSS_THADDIUS) == DONE)
                     {
                         pGo->SetGoState(GO_STATE_ACTIVE);
-                        pGo->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+                        pGo->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                     }
                     break;
                 case GO_MAEXXNA_PORTAL:
@@ -419,7 +439,7 @@ public:
                     if (GetBossState(BOSS_MAEXXNA) == DONE)
                     {
                         pGo->SetGoState(GO_STATE_ACTIVE);
-                        pGo->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+                        pGo->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                     }
                     break;
                 case GO_HORSEMAN_PORTAL:
@@ -427,7 +447,7 @@ public:
                     if (GetBossState(BOSS_HORSEMAN) == DONE)
                     {
                         pGo->SetGoState(GO_STATE_ACTIVE);
-                        pGo->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+                        pGo->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                     }
                     break;
 
@@ -491,6 +511,8 @@ public:
                     }
                     break;
             }
+
+            InstanceScript::OnGameObjectCreate(pGo);
         }
 
         void OnGameObjectRemove(GameObject* pGo) override
@@ -598,7 +620,7 @@ public:
 
         void SetData(uint32 id, uint32 data) override
         {
-            switch(id)
+            switch (id)
             {
                 case DATA_ABOMINATION_KILLED:
                     abominationsKilled++;
@@ -745,7 +767,7 @@ public:
                 return false;
 
             // Bosses data
-            switch(bossId)
+            switch (bossId)
             {
                 case BOSS_KELTHUZAD:
                     if (state == NOT_STARTED)
@@ -844,7 +866,7 @@ public:
                         if (GameObject* go = instance->GetGameObject(_loathebPortalGUID))
                         {
                             go->SetGoState(GO_STATE_ACTIVE);
-                            go->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+                            go->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                         }
                         if (GameObject* go = instance->GetGameObject(_plagueEyePortalGUID))
                         {
@@ -854,13 +876,9 @@ public:
                         {
                             go->SetGoState(GO_STATE_ACTIVE);
                         }
-                        events.ScheduleEvent(EVENT_KELTHUZAD_WING_TAUNT, 6000);
+                        events.ScheduleEvent(EVENT_KELTHUZAD_WING_TAUNT, 6s);
                         break;
                     case BOSS_ANUB:
-                        if (GameObject* go = instance->GetGameObject(_anubGateGUID))
-                        {
-                            go->SetGoState(GO_STATE_ACTIVE);
-                        }
                         if (GameObject* go = instance->GetGameObject(_anubNextGateGUID))
                         {
                             go->SetGoState(GO_STATE_ACTIVE);
@@ -884,7 +902,7 @@ public:
                         if (GameObject* go = instance->GetGameObject(_maexxnaPortalGUID))
                         {
                             go->SetGoState(GO_STATE_ACTIVE);
-                            go->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+                            go->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                         }
                         if (GameObject* go = instance->GetGameObject(_spiderEyePortalGUID))
                         {
@@ -894,7 +912,7 @@ public:
                         {
                             go->SetGoState(GO_STATE_ACTIVE);
                         }
-                        events.ScheduleEvent(EVENT_KELTHUZAD_WING_TAUNT, 6000);
+                        events.ScheduleEvent(EVENT_KELTHUZAD_WING_TAUNT, 6s);
                         break;
                     case BOSS_GOTHIK:
                         if (GameObject* go = instance->GetGameObject(_gothikEnterGateGUID))
@@ -911,13 +929,13 @@ public:
                         }
                         break;
                     case BOSS_SAPPHIRON:
-                        events.ScheduleEvent(EVENT_FROSTWYRM_WATERFALL_DOOR, 5000);
+                        events.ScheduleEvent(EVENT_FROSTWYRM_WATERFALL_DOOR, 5s);
                         break;
                     case BOSS_THADDIUS:
                         if (GameObject* go = instance->GetGameObject(_thaddiusPortalGUID))
                         {
                             go->SetGoState(GO_STATE_ACTIVE);
-                            go->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+                            go->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                         }
                         if (GameObject* go = instance->GetGameObject(_abomEyePortalGUID))
                         {
@@ -927,13 +945,13 @@ public:
                         {
                             go->SetGoState(GO_STATE_ACTIVE);
                         }
-                        events.ScheduleEvent(EVENT_KELTHUZAD_WING_TAUNT, 6000);
+                        events.ScheduleEvent(EVENT_KELTHUZAD_WING_TAUNT, 6s);
                         break;
                     case BOSS_HORSEMAN:
                         if (GameObject* go = instance->GetGameObject(_horsemanPortalGUID))
                         {
                             go->SetGoState(GO_STATE_ACTIVE);
-                            go->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_NOT_SELECTABLE);
+                            go->RemoveGameObjectFlag(GO_FLAG_NOT_SELECTABLE);
                         }
                         if (GameObject* go = instance->GetGameObject(_deathknightEyePortalGUID))
                         {
@@ -943,7 +961,7 @@ public:
                         {
                             go->SetGoState(GO_STATE_ACTIVE);
                         }
-                        events.ScheduleEvent(EVENT_KELTHUZAD_WING_TAUNT, 6000);
+                        events.ScheduleEvent(EVENT_KELTHUZAD_WING_TAUNT, 6s);
                         break;
                     default:
                         break;
@@ -1051,8 +1069,6 @@ public:
                     return _heiganGateGUID;
                 case DATA_LOATHEB_GATE:
                     return _loathebGateGUID;
-                case DATA_ANUB_GATE:
-                    return _anubGateGUID;
                 case DATA_FAERLINA_WEB:
                     return _faerlinaWebGUID;
                 case DATA_MAEXXNA_GATE:
@@ -1089,6 +1105,8 @@ public:
                     return _stalaggGUID;
                 case DATA_FEUGEN_BOSS:
                     return _feugenGUID;
+                case DATA_GOTHIK_BOSS:
+                    return _gothikGUID;
                 case DATA_LICH_KING_BOSS:
                     return _lichkingGUID;
                 default:
@@ -1098,55 +1116,14 @@ public:
             return ObjectGuid::Empty;
         }
 
-        std::string GetSaveData() override
+        void ReadSaveDataMore(std::istringstream& data) override
         {
-            OUT_SAVE_INST_DATA;
-
-            std::ostringstream saveStream;
-            saveStream << "N X X " << GetBossSaveData() << ' ' << immortalAchievement;
-
-            OUT_SAVE_INST_DATA_COMPLETE;
-            return saveStream.str();
+            data >> immortalAchievement;
         }
 
-        void Load(const char* in) override
+        void WriteSaveDataMore(std::ostringstream& data) override
         {
-            if (!in)
-            {
-                OUT_LOAD_INST_DATA_FAIL;
-                return;
-            }
-
-            OUT_LOAD_INST_DATA(in);
-
-            char dataHead1, dataHead2, dataHead3;
-            std::istringstream loadStream(in);
-            loadStream >> dataHead1 >> dataHead2 >> dataHead3;
-
-            if (dataHead1 == 'N' && dataHead2 == 'X' && dataHead3 == 'X')
-            {
-                for (uint8 i = 0; i < MAX_ENCOUNTERS; ++i)
-                {
-                    uint32 tmpState;
-                    loadStream >> tmpState;
-                    if (tmpState == IN_PROGRESS)
-                    {
-                        tmpState = NOT_STARTED;
-                    }
-                    if (i == BOSS_HORSEMAN && tmpState == DONE)
-                    {
-                        _horsemanLoadDoneState = true;
-                    }
-                    SetBossState(i, EncounterState(tmpState));
-                }
-                loadStream >> immortalAchievement;
-
-                OUT_LOAD_INST_DATA_COMPLETE;
-            }
-            else
-            {
-                OUT_LOAD_INST_DATA_FAIL;
-            }
+            data << immortalAchievement;
         }
     };
 };
@@ -1221,8 +1198,38 @@ public:
     };
 };
 
+const Position sapphironEntryTP = { 3498.300049f, -5349.490234f, 144.968002f, 1.3698910f };
+
+class at_naxxramas_hub_portal : public AreaTriggerScript
+{
+public:
+    at_naxxramas_hub_portal() : AreaTriggerScript("at_naxxramas_hub_portal") { }
+
+    bool OnTrigger(Player* player, AreaTrigger const* /*trigger*/) override
+    {
+        if (player->IsAlive() && !player->IsInCombat())
+        {
+            if (InstanceScript *instance = player->GetInstanceScript())
+            {
+                bool AreAllWingsCleared = instance->GetBossState(BOSS_MAEXXNA) == DONE
+                    && (instance->GetBossState(BOSS_LOATHEB) == DONE)
+                    && (instance->GetBossState(BOSS_THADDIUS) == DONE)
+                    && (instance->GetBossState(BOSS_HORSEMAN) == DONE);
+
+                if (AreAllWingsCleared)
+                {
+                    player->TeleportTo(533, sapphironEntryTP.m_positionX, sapphironEntryTP.m_positionY, sapphironEntryTP.m_positionZ, sapphironEntryTP.m_orientation);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+};
+
 void AddSC_instance_naxxramas()
 {
     new instance_naxxramas();
     new boss_naxxramas_misc();
+    new at_naxxramas_hub_portal();
 }

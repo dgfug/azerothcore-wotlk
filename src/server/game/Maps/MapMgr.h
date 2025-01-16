@@ -25,8 +25,6 @@
 #include "MapUpdater.h"
 #include "Object.h"
 
-#include <mutex>
-
 class Transport;
 class StaticTransport;
 class MotionTransport;
@@ -126,6 +124,15 @@ public:
             return mod;
         }
         return std::fmod(o, 2.0f * static_cast<float>(M_PI));
+    }
+
+    /**
+    * @name GetInstanceIDs
+    * @return vector of instance IDs
+    */
+    std::vector<bool> GetInstanceIDs()
+    {
+        return _instanceIds;
     }
 
     void DoDelayedMovesAndRemoves();

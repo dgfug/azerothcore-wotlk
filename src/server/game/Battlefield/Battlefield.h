@@ -22,8 +22,6 @@
 #include "GameObject.h"
 #include "ObjectAccessor.h"
 #include "SharedDefines.h"
-#include "Utilities/Util.h"
-#include "WorldPacket.h"
 #include "ZoneScript.h"
 
 enum BattlefieldTypes
@@ -104,7 +102,8 @@ public:
     virtual void ChangeTeam(TeamId /*oldTeam*/) {}
     virtual void SendChangePhase();
 
-    bool SetCapturePointData(GameObject* capturePoint);
+    //Added team to reset capturepoints on sliders after warTime
+    bool SetCapturePointData(GameObject* capturePoint, TeamId team);
     GameObject* GetCapturePointGo();
     GameObject* GetCapturePointGo(WorldObject* obj);
 

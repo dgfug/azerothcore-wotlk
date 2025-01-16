@@ -23,9 +23,10 @@
 #include "Player.h"
 #include "SpellInfo.h"
 #include "SpellMgr.h"
-#include "World.h"
-#include "Tokenize.h"
 #include "StringConvert.h"
+#include "Tokenize.h"
+#include "VMapMgr2.h"
+#include "World.h"
 
 namespace DisableMgr
 {
@@ -44,7 +45,7 @@ namespace DisableMgr
 
         DisableMap m_DisableMap;
 
-        uint8 MAX_DISABLE_TYPES = 10;
+        uint8 MAX_DISABLE_TYPES = 11;
     }
 
     void LoadDisables()
@@ -63,7 +64,7 @@ namespace DisableMgr
 
         if (!result)
         {
-            LOG_INFO("server.loading", ">> Loaded 0 disables. DB table `disables` is empty!");
+            LOG_WARN("server.loading", ">> Loaded 0 disables. DB table `disables` is empty!");
             LOG_INFO("server.loading", " ");
             return;
         }
@@ -258,6 +259,8 @@ namespace DisableMgr
                         }
                         break;
                     }
+                    case DISABLE_TYPE_LOOT:
+                        break;
                 default:
                     break;
             }
@@ -266,7 +269,7 @@ namespace DisableMgr
             ++total_count;
         } while (result->NextRow());
 
-        LOG_INFO("server.loading", ">> Loaded {} disables in {} ms", total_count, GetMSTimeDiffToNow(oldMSTime));
+        LOG_INFO("server.loading", ">> Loaded {} Disables in {} ms", total_count, GetMSTimeDiffToNow(oldMSTime));
         LOG_INFO("server.loading", " ");
     }
 
@@ -297,13 +300,18 @@ namespace DisableMgr
             ++itr;
         }
 
-        LOG_INFO("server.loading", ">> Checked {} quest disables in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+        LOG_INFO("server.loading", ">> Checked {} Quest Disables in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
         LOG_INFO("server.loading", " ");
     }
 
     bool IsDisabledFor(DisableType type, uint32 entry, Unit const* unit, uint8 flags)
     {
-        ASSERT(type < MAX_DISABLE_TYPES);
+        if (type > MAX_DISABLE_TYPES)
+        {
+            LOG_ERROR("server", "Disables::IsDisabledFor() called with unknown disable type {}!  (entry {}, flags {}).", type, entry, flags);
+            return false;
+        }
+
         if (m_DisableMap[type].empty())
             return false;
 
@@ -318,8 +326,8 @@ namespace DisableMgr
                     uint8 spellFlags = itr->second.flags;
                     if (unit)
                     {
-                        if ((spellFlags & SPELL_DISABLE_PLAYER && unit->GetTypeId() == TYPEID_PLAYER) ||
-                                (unit->GetTypeId() == TYPEID_UNIT && ((unit->IsPet() && spellFlags & SPELL_DISABLE_PET) || spellFlags & SPELL_DISABLE_CREATURE)))
+                        if ((spellFlags & SPELL_DISABLE_PLAYER && unit->IsPlayer()) ||
+                                (unit->IsCreature() && ((unit->IsPet() && spellFlags & SPELL_DISABLE_PET) || spellFlags & SPELL_DISABLE_CREATURE)))
                         {
                             if (spellFlags & SPELL_DISABLE_MAP)
                             {
@@ -388,6 +396,8 @@ namespace DisableMgr
             case DISABLE_TYPE_GO_LOS:
                 return true;
             case DISABLE_TYPE_GAME_EVENT:
+                return true;
+            case DISABLE_TYPE_LOOT:
                 return true;
         }
 

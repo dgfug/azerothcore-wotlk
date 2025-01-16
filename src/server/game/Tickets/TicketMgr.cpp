@@ -138,14 +138,14 @@ void GmTicket::SendResponse(WorldSession* session) const
     data << uint32(_id);        // ticketID
     data << _message.c_str();
 
-    size_t len = _response.size();
+    std::size_t len = _response.size();
     char const* s = _response.c_str();
 
     for (int i = 0; i < 4; i++)
     {
         if (len)
         {
-            size_t writeLen = std::min<size_t>(len, 3999);
+            std::size_t writeLen = std::min<size_t>(len, 3999);
             data.append(s, writeLen);
 
             len -= writeLen;
@@ -313,7 +313,7 @@ void TicketMgr::LoadTickets()
     PreparedQueryResult result = CharacterDatabase.Query(stmt);
     if (!result)
     {
-        LOG_INFO("server.loading", ">> Loaded 0 GM tickets. DB table `gm_ticket` is empty!");
+        LOG_WARN("server.loading", ">> Loaded 0 GM tickets. DB table `gm_ticket` is empty!");
 
         return;
     }

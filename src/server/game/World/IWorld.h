@@ -22,12 +22,7 @@
 #include "Common.h"
 #include "Duration.h"
 #include "ObjectGuid.h"
-#include "QueryResult.h"
 #include "SharedDefines.h"
-#include <atomic>
-#include <list>
-#include <map>
-#include <set>
 #include <unordered_map>
 
 class WorldPacket;
@@ -79,6 +74,7 @@ enum WorldBoolConfigs
     CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHANNEL,
     CONFIG_ALLOW_TWO_SIDE_INTERACTION_GROUP,
     CONFIG_ALLOW_TWO_SIDE_INTERACTION_GUILD,
+    CONFIG_ALLOW_TWO_SIDE_INTERACTION_ARENA,
     CONFIG_ALLOW_TWO_SIDE_INTERACTION_AUCTION,
     CONFIG_ALLOW_TWO_SIDE_INTERACTION_MAIL,
     CONFIG_ALLOW_TWO_SIDE_WHO_LIST,
@@ -138,8 +134,9 @@ enum WorldBoolConfigs
     CONFIG_AUTOBROADCAST,
     CONFIG_ALLOW_TICKETS,
     CONFIG_DELETE_CHARACTER_TICKET_TRACE,
+    CONFIG_LFG_CAST_DESERTER,
+    CONFIG_DBC_ENFORCE_ITEM_ATTRIBUTES,
     CONFIG_PRESERVE_CUSTOM_CHANNELS,
-    CONFIG_WINTERGRASP_ENABLE,
     CONFIG_PDUMP_NO_PATHS,
     CONFIG_PDUMP_NO_OVERWRITE,
     CONFIG_ENABLE_MMAPS, // pussywizard
@@ -174,6 +171,19 @@ enum WorldBoolConfigs
     CONFIG_PLAYER_SETTINGS_ENABLED,
     CONFIG_ALLOW_JOIN_BG_AND_LFG,
     CONFIG_MISS_CHANCE_MULTIPLIER_ONLY_FOR_PLAYERS,
+    CONFIG_LEAVE_GROUP_ON_LOGOUT,
+    CONFIG_QUEST_POI_ENABLED,
+    CONFIG_VMAP_BLIZZLIKE_PVP_LOS,
+    CONFIG_VMAP_BLIZZLIKE_LOS_OPEN_WORLD,
+    CONFIG_OBJECT_SPARKLES,
+    CONFIG_LOW_LEVEL_REGEN_BOOST,
+    CONFIG_OBJECT_QUEST_MARKERS,
+    CONFIG_STRICT_NAMES_RESERVED,
+    CONFIG_STRICT_NAMES_PROFANITY,
+    CONFIG_ALLOWS_RANK_MOD_FOR_PET_HEALTH,
+    CONFIG_MUNCHING_BLIZZLIKE,
+    CONFIG_ENABLE_DAZE,
+    CONFIG_SPELL_QUEUE_ENABLED,
     BOOL_CONFIG_VALUE_COUNT
 };
 
@@ -228,6 +238,7 @@ enum WorldIntConfigs
     CONFIG_START_PLAYER_LEVEL,
     CONFIG_START_HEROIC_PLAYER_LEVEL,
     CONFIG_START_PLAYER_MONEY,
+    CONFIG_START_HEROIC_PLAYER_MONEY,
     CONFIG_MAX_HONOR_POINTS,
     CONFIG_MAX_HONOR_POINTS_MONEY_PER_POINT,
     CONFIG_START_HONOR_POINTS,
@@ -265,6 +276,8 @@ enum WorldIntConfigs
     CONFIG_EXPANSION,
     CONFIG_CHATFLOOD_MESSAGE_COUNT,
     CONFIG_CHATFLOOD_MESSAGE_DELAY,
+    CONFIG_CHATFLOOD_ADDON_MESSAGE_COUNT,
+    CONFIG_CHATFLOOD_ADDON_MESSAGE_DELAY,
     CONFIG_CHATFLOOD_MUTE_TIME,
     CONFIG_EVENT_ANNOUNCE,
     CONFIG_CREATURE_FAMILY_ASSISTANCE_DELAY,
@@ -292,6 +305,7 @@ enum WorldIntConfigs
     CONFIG_DEATH_SICKNESS_LEVEL,
     CONFIG_INSTANT_LOGOUT,
     CONFIG_DISABLE_BREATHING,
+    CONFIG_BATTLEGROUND_OVERRIDE_LOWLEVELS_MINPLAYERS,
     CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_SPAM_DELAY,
     CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_TIMER,
     CONFIG_BATTLEGROUND_PREMATURE_FINISH_TIMER,
@@ -305,14 +319,18 @@ enum WorldIntConfigs
     CONFIG_BATTLEGROUND_SPEED_BUFF_RESPAWN,
     CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_LIMIT_MIN_LEVEL,
     CONFIG_BATTLEGROUND_QUEUE_ANNOUNCER_LIMIT_MIN_PLAYERS,
+    CONFIG_WINTERGRASP_ENABLE,
     CONFIG_ARENA_MAX_RATING_DIFFERENCE,
     CONFIG_ARENA_RATING_DISCARD_TIMER,
+    CONFIG_ARENA_PREV_OPPONENTS_DISCARD_TIMER,
     CONFIG_ARENA_AUTO_DISTRIBUTE_INTERVAL_DAYS,
     CONFIG_ARENA_GAMES_REQUIRED,
     CONFIG_ARENA_SEASON_ID,
     CONFIG_ARENA_START_RATING,
+    CONFIG_LEGACY_ARENA_POINTS_CALC,
     CONFIG_ARENA_START_PERSONAL_RATING,
     CONFIG_ARENA_START_MATCHMAKER_RATING,
+    CONFIG_ARENA_QUEUE_ANNOUNCER_DETAIL,
     CONFIG_HONOR_AFTER_DUEL,
     CONFIG_PVP_TOKEN_MAP_TYPE,
     CONFIG_PVP_TOKEN_ID,
@@ -368,6 +386,7 @@ enum WorldIntConfigs
     CONFIG_ICC_BUFF_ALLIANCE,
     CONFIG_ITEMDELETE_QUALITY,
     CONFIG_ITEMDELETE_ITEM_LEVEL,
+    CONFIG_ITEMDELETE_KEEP_DAYS,
     CONFIG_BG_REWARD_WINNER_HONOR_FIRST,
     CONFIG_BG_REWARD_WINNER_ARENA_FIRST,
     CONFIG_BG_REWARD_WINNER_HONOR_LAST,
@@ -397,6 +416,11 @@ enum WorldIntConfigs
     CONFIG_LOOT_NEED_BEFORE_GREED_ILVL_RESTRICTION,
     CONFIG_LFG_MAX_KICK_COUNT,
     CONFIG_LFG_KICK_PREVENTION_TIMER,
+    CONFIG_CHANGE_FACTION_MAX_MONEY,
+    CONFIG_WATER_BREATH_TIMER,
+    CONFIG_DAILY_RBG_MIN_LEVEL_AP_REWARD,
+    CONFIG_AUCTIONHOUSE_WORKERTHREADS,
+    CONFIG_SPELL_QUEUE_WINDOW,
     INT_CONFIG_VALUE_COUNT
 };
 
@@ -420,8 +444,8 @@ enum Rates
     RATE_DROP_ITEM_LEGENDARY,
     RATE_DROP_ITEM_ARTIFACT,
     RATE_DROP_ITEM_REFERENCED,
-
     RATE_DROP_ITEM_REFERENCED_AMOUNT,
+    RATE_DROP_ITEM_GROUP_AMOUNT,
     RATE_SELLVALUE_ITEM_POOR,
     RATE_SELLVALUE_ITEM_NORMAL,
     RATE_SELLVALUE_ITEM_UNCOMMON,
@@ -439,6 +463,7 @@ enum Rates
     RATE_BUYVALUE_ITEM_ARTIFACT,
     RATE_BUYVALUE_ITEM_HEIRLOOM,
     RATE_DROP_MONEY,
+    RATE_REWARD_QUEST_MONEY,
     RATE_REWARD_BONUS_MONEY,
     RATE_XP_KILL,
     RATE_XP_BG_KILL_AV,
@@ -476,6 +501,7 @@ enum Rates
     RATE_REST_INGAME,
     RATE_REST_OFFLINE_IN_TAVERN_OR_CITY,
     RATE_REST_OFFLINE_IN_WILDERNESS,
+    RATE_REST_MAX_BONUS,
     RATE_DAMAGE_FALL,
     RATE_AUCTION_TIME,
     RATE_AUCTION_DEPOSIT,
@@ -483,15 +509,16 @@ enum Rates
     RATE_HONOR,
     RATE_ARENA_POINTS,
     RATE_TALENT,
+    RATE_TALENT_PET,
     RATE_CORPSE_DECAY_LOOTED,
     RATE_INSTANCE_RESET_TIME,
-    RATE_TARGET_POS_RECALCULATION_RANGE,
     RATE_DURABILITY_LOSS_ON_DEATH,
     RATE_DURABILITY_LOSS_DAMAGE,
     RATE_DURABILITY_LOSS_PARRY,
     RATE_DURABILITY_LOSS_ABSORB,
     RATE_DURABILITY_LOSS_BLOCK,
-    RATE_MOVESPEED,
+    RATE_MOVESPEED_PLAYER,
+    RATE_MOVESPEED_NPC,
     RATE_MISS_CHANCE_MULTIPLIER_TARGET_CREATURE,
     RATE_MISS_CHANCE_MULTIPLIER_TARGET_PLAYER,
     MAX_RATES
@@ -505,7 +532,6 @@ public:
     [[nodiscard]] virtual WorldSession* FindOfflineSession(uint32 id) const = 0;
     [[nodiscard]] virtual WorldSession* FindOfflineSessionForCharacterGUID(ObjectGuid::LowType guidLow) const = 0;
     virtual void AddSession(WorldSession* s) = 0;
-    virtual void SendAutoBroadcast() = 0;
     virtual bool KickSession(uint32 id) = 0;
     virtual void UpdateMaxSessionCounters() = 0;
     [[nodiscard]] virtual const SessionMap& GetAllSessions() const = 0;
@@ -542,10 +568,6 @@ public:
     [[nodiscard]] virtual uint16 GetConfigMaxSkillValue() const = 0;
     virtual void SetInitialWorldSettings() = 0;
     virtual void LoadConfigSettings(bool reload = false) = 0;
-    virtual void SendWorldText(uint32 string_id, ...) = 0;
-    virtual void SendWorldTextOptional(uint32 string_id, uint32 flag, ...) = 0;
-    virtual void SendGlobalText(const char* text, WorldSession* self) = 0;
-    virtual void SendGMText(uint32 string_id, ...) = 0;
     virtual void SendGlobalMessage(WorldPacket const* packet, WorldSession* self = nullptr, TeamId teamId = TEAM_NEUTRAL) = 0;
     virtual void SendGlobalGMMessage(WorldPacket const* packet, WorldSession* self = nullptr, TeamId teamId = TEAM_NEUTRAL) = 0;
     virtual bool SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession* self = nullptr, TeamId teamId = TEAM_NEUTRAL) = 0;
@@ -580,12 +602,7 @@ public:
     virtual void UpdateRealmCharCount(uint32 accid) = 0;
     [[nodiscard]] virtual LocaleConstant GetAvailableDbcLocale(LocaleConstant locale) const = 0;
     virtual void LoadDBVersion() = 0;
-    virtual void LoadDBRevision() = 0;
     [[nodiscard]] virtual char const* GetDBVersion() const = 0;
-    [[nodiscard]] virtual char const* GetWorldDBRevision() const = 0;
-    [[nodiscard]] virtual char const* GetCharacterDBRevision() const = 0;
-    [[nodiscard]] virtual char const* GetAuthDBRevision() const = 0;
-    virtual void LoadAutobroadcasts() = 0;
     virtual void UpdateAreaDependentAuras() = 0;
     [[nodiscard]] virtual uint32 GetCleaningFlags() const = 0;
     virtual void   SetCleaningFlags(uint32 flags) = 0;
@@ -593,6 +610,7 @@ public:
     [[nodiscard]] virtual std::string const& GetRealmName() const = 0;
     virtual void SetRealmName(std::string name) = 0;
     virtual void RemoveOldCorpses() = 0;
+    virtual void DoForAllOnlinePlayers(std::function<void(Player*)> exec) = 0;
 };
 
 #endif //AZEROTHCORE_IWORLD_H

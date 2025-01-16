@@ -19,8 +19,8 @@
 #define AZEROTHCORE_WORLDMOCK_H
 
 #include "ArenaSpectator.h"
-#include "IWorld.h"
 #include "Duration.h"
+#include "IWorld.h"
 #include "gmock/gmock.h"
 
 #pragma GCC diagnostic push
@@ -36,7 +36,6 @@ public:
     MOCK_METHOD(WorldSession*, FindOfflineSession, (uint32 id), (const));
     MOCK_METHOD(WorldSession*, FindOfflineSessionForCharacterGUID, (ObjectGuid::LowType guidLow),(const));
     MOCK_METHOD(void, AddSession, (WorldSession* s), ());
-    MOCK_METHOD(void, SendAutoBroadcast, ());
     MOCK_METHOD(bool, KickSession, (uint32 id), ());
     MOCK_METHOD(void, UpdateMaxSessionCounters, ());
     MOCK_METHOD(const SessionMap&, GetAllSessions, (), (const));
@@ -73,10 +72,6 @@ public:
     MOCK_METHOD(uint16, GetConfigMaxSkillValue, (), (const));
     MOCK_METHOD(void, SetInitialWorldSettings, ());
     MOCK_METHOD(void, LoadConfigSettings, (bool reload), ());
-    void SendWorldText(uint32 string_id, ...) override {}
-    void SendWorldTextOptional(uint32 string_id, uint32 flag, ...) override {}
-    MOCK_METHOD(void, SendGlobalText, (const char* text, WorldSession* self), ());
-    void SendGMText(uint32 string_id, ...) override {}
     MOCK_METHOD(void, SendGlobalMessage, (WorldPacket const* packet, WorldSession* self, TeamId teamId), ());
     MOCK_METHOD(void, SendGlobalGMMessage, (WorldPacket const* packet, WorldSession* self, TeamId teamId), ());
     MOCK_METHOD(bool, SendZoneMessage, (uint32 zone, WorldPacket const* packet, WorldSession* self, TeamId teamId), ());
@@ -111,12 +106,7 @@ public:
     MOCK_METHOD(void, UpdateRealmCharCount, (uint32 accid), ());
     MOCK_METHOD(LocaleConstant, GetAvailableDbcLocale, (LocaleConstant locale), (const));
     MOCK_METHOD(void, LoadDBVersion, ());
-    MOCK_METHOD(void, LoadDBRevision, ());
     MOCK_METHOD(char const *, GetDBVersion, (), (const));
-    MOCK_METHOD(char const *, GetWorldDBRevision, (), (const));
-    MOCK_METHOD(char const *, GetCharacterDBRevision, (), (const));
-    MOCK_METHOD(char const *, GetAuthDBRevision, (), (const));
-    MOCK_METHOD(void, LoadAutobroadcasts, ());
     MOCK_METHOD(void, UpdateAreaDependentAuras, ());
     MOCK_METHOD(uint32, GetCleaningFlags, (), (const));
     MOCK_METHOD(void, SetCleaningFlags, (uint32 flags), ());
@@ -126,6 +116,7 @@ public:
     MOCK_METHOD(std::string const&, GetRealmName, (), (const));
     MOCK_METHOD(void, SetRealmName, (std::string name), ());
     MOCK_METHOD(void, RemoveOldCorpses, ());
+    MOCK_METHOD(void, DoForAllOnlinePlayers, (std::function<void(Player*)> exec));
 };
 #pragma GCC diagnostic pop
 
