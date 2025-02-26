@@ -15,8 +15,8 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "CreatureScript.h"
 #include "Player.h"
-#include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "naxxramas.h"
 
@@ -69,11 +69,8 @@ public:
     struct boss_heiganAI : public BossAI
     {
         explicit boss_heiganAI(Creature* c) : BossAI(c, BOSS_HEIGAN)
-        {
-            pInstance = me->GetInstanceScript();
-        }
+        {}
 
-        InstanceScript* pInstance;
         EventMap events;
         uint8 currentPhase{};
         uint8 currentSection{};
@@ -86,25 +83,15 @@ public:
             currentPhase = 0;
             currentSection = 3;
             moveRight = true;
-            if (pInstance)
-            {
-                if (GameObject* go = me->GetMap()->GetGameObject(pInstance->GetGuidData(DATA_HEIGAN_ENTER_GATE)))
-                {
-                    go->SetGoState(GO_STATE_ACTIVE);
-                }
-            }
         }
 
         void KilledUnit(Unit* who) override
         {
-            if (who->GetTypeId() != TYPEID_PLAYER)
+            if (!who->IsPlayer())
                 return;
 
             Talk(SAY_SLAY);
-            if (pInstance)
-            {
-                pInstance->SetData(DATA_IMMORTAL_FAIL, 0);
-            }
+            instance->StorePersistentData(PERSISTENT_DATA_IMMORTAL_FAIL, 1);
         }
 
         void JustDied(Unit*  killer) override
@@ -113,18 +100,11 @@ public:
             Talk(EMOTE_DEATH);
         }
 
-        void EnterCombat(Unit* who) override
+        void JustEngagedWith(Unit* who) override
         {
-            BossAI::EnterCombat(who);
+            BossAI::JustEngagedWith(who);
             me->SetInCombatWithZone();
             Talk(SAY_AGGRO);
-            if (pInstance)
-            {
-                if (GameObject* go = me->GetMap()->GetGameObject(pInstance->GetGuidData(DATA_HEIGAN_ENTER_GATE)))
-                {
-                    go->SetGoState(GO_STATE_READY);
-                }
-            }
             StartFightPhase(PHASE_SLOW_DANCE);
         }
 
@@ -138,10 +118,10 @@ public:
                 me->CastStop();
                 me->SetReactState(REACT_AGGRESSIVE);
                 DoZoneInCombat();
-                events.ScheduleEvent(EVENT_DISRUPTION, urand(12000, 15000));
-                events.ScheduleEvent(EVENT_DECEPIT_FEVER, 17000);
-                events.ScheduleEvent(EVENT_ERUPT_SECTION, 15000);
-                events.ScheduleEvent(EVENT_SWITCH_PHASE, 90000);
+                events.ScheduleEvent(EVENT_DISRUPTION, 12s, 15s);
+                events.ScheduleEvent(EVENT_DECEPIT_FEVER, 17s);
+                events.ScheduleEvent(EVENT_ERUPT_SECTION, 15s);
+                events.ScheduleEvent(EVENT_SWITCH_PHASE, 90s);
             }
             else // if (phase == PHASE_FAST_DANCE)
             {
@@ -152,11 +132,11 @@ public:
                 me->SetReactState(REACT_PASSIVE);
                 me->CastSpell(me, SPELL_TELEPORT_SELF, false);
                 me->SetFacingTo(2.40f);
-                events.ScheduleEvent(EVENT_PLAGUE_CLOUD, 1000);
-                events.ScheduleEvent(EVENT_ERUPT_SECTION, 7000);
-                events.ScheduleEvent(EVENT_SWITCH_PHASE, 45000);
+                events.ScheduleEvent(EVENT_PLAGUE_CLOUD, 1s);
+                events.ScheduleEvent(EVENT_ERUPT_SECTION, 7s);
+                events.ScheduleEvent(EVENT_SWITCH_PHASE, 45s);
             }
-            events.ScheduleEvent(EVENT_SAFETY_DANCE, 5000);
+            events.ScheduleEvent(EVENT_SAFETY_DANCE, 5s);
         }
 
         bool IsInRoom(Unit* who)
@@ -185,11 +165,11 @@ public:
             {
                 case EVENT_DISRUPTION:
                     me->CastSpell(me, SPELL_SPELL_DISRUPTION, false);
-                    events.RepeatEvent(10000);
+                    events.Repeat(10s);
                     break;
                 case EVENT_DECEPIT_FEVER:
                     me->CastSpell(me, RAID_MODE(SPELL_DECREPIT_FEVER_10, SPELL_DECREPIT_FEVER_25), false);
-                    events.RepeatEvent(urand(22000, 25000));
+                    events.Repeat(22s, 25s);
                     break;
                 case EVENT_PLAGUE_CLOUD:
                     me->CastSpell(me, SPELL_PLAGUE_CLOUD, false);
@@ -206,41 +186,38 @@ public:
                     }
                     break;
                 case EVENT_ERUPT_SECTION:
-                    if (pInstance)
-                    {
-                        pInstance->SetData(DATA_HEIGAN_ERUPTION, currentSection);
-                        if (currentSection == 3)
-                        {
-                            moveRight = false;
-                        }
-                        else if (currentSection == 0)
-                        {
-                            moveRight = true;
-                        }
-                        moveRight ? currentSection++ : currentSection--;
-                    }
+                {
+                    instance->SetData(DATA_HEIGAN_ERUPTION, currentSection);
+                    if (currentSection == 3)
+                        moveRight = false;
+                    else if (currentSection == 0)
+                        moveRight = true;
+
+                    moveRight ? currentSection++ : currentSection--;
+
                     if (currentPhase == PHASE_SLOW_DANCE)
-                    {
                         Talk(SAY_TAUNT);
-                    }
-                    events.RepeatEvent(currentPhase == PHASE_SLOW_DANCE ? 10000 : 4000);
+
+                    events.Repeat(currentPhase == PHASE_SLOW_DANCE ? 10s : 4s);
                     break;
+                }
                 case EVENT_SAFETY_DANCE:
+                {
+                    Map::PlayerList const& pList = me->GetMap()->GetPlayers();
+                    for (auto const& itr : pList)
                     {
-                        Map::PlayerList const& pList = me->GetMap()->GetPlayers();
-                        for (const auto& itr : pList)
+                        if (IsInRoom(itr.GetSource()) && !itr.GetSource()->IsAlive())
                         {
-                            if (IsInRoom(itr.GetSource()) && !itr.GetSource()->IsAlive())
-                            {
-                                pInstance->SetData(DATA_DANCE_FAIL, 0);
-                                pInstance->SetData(DATA_IMMORTAL_FAIL, 0);
-                                return;
-                            }
+                            instance->SetData(DATA_DANCE_FAIL, 0);
+                            instance->StorePersistentData(PERSISTENT_DATA_IMMORTAL_FAIL, 1);
+                            return;
                         }
-                        events.RepeatEvent(5000);
-                        return;
                     }
+                    events.Repeat(5s);
+                    return;
+                }
             }
+
             DoMeleeAttackIfReady();
         }
     };
